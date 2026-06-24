@@ -1,20 +1,18 @@
 {
   "expo": {
-    "name": "Lab4Moviles",
-    "slug": "lab4moviles",
+    "name": "FrontEnd",
+    "slug": "FrontEnd",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "lab4moviles",
     "icon": "./assets/images/icon.png",
+    "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.lab4moviles.app"
+      "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.lab4moviles.app",
       "adaptiveIcon": {
-        "backgroundColor": "#208AEF",
+        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -27,7 +25,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -37,10 +34,12 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler": true
     }
   }
 }
