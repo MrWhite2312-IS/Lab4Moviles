@@ -41,3 +41,18 @@ app-example
 # generated native folders
 /ios
 /android
+
+# .NET / ASP.NET Core
+BackEnd/**/bin/
+BackEnd/**/obj/
+BackEnd/**/.vs/
+BackEnd/**/Properties/launchSettings.json
+BackEnd/**/*.user
+
+# Entity Framework migrations (optional: quita esta línea si quieres versionar migraciones)
+# BackEnd/**/Migrations/
+
+# Secrets — nunca versionar credenciales reales
+BackEnd/**/appsettings.Development.json
+BackEnd/**/appsettings.*.json
+!BackEnd/**/appsettings.json
