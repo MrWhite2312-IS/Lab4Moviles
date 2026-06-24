@@ -17,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(u => u.ProfilePhotoLocked)
                   .HasDefaultValue(false);
 
+            entity.Property(u => u.AuthProvider)
+                  .HasDefaultValue("local");
+
             entity.Property(u => u.CreatedAt)
                   .HasDefaultValueSql("NOW()");
 

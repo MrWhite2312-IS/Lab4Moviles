@@ -31,6 +31,7 @@ public class AuthService(AppDbContext db, IConfiguration config)
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             FirstName = dto.FirstName.Trim(),
             LastName = dto.LastName.Trim(),
+            AuthProvider = "local",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         };
@@ -56,7 +57,7 @@ public class AuthService(AppDbContext db, IConfiguration config)
     }
 
     public async Task<(AuthResponseDto? response, string? error)> GoogleLoginAsync(
-        string idToken, CancellationToken ct = default)
+        string idToken, string? photoUrl = null, CancellationToken ct = default)
     {
         // Verify token with Google's tokeninfo endpoint (simple, no SDK needed)
         using var http = new HttpClient();
@@ -77,7 +78,10 @@ public class AuthService(AppDbContext db, IConfiguration config)
         var email = root.GetProperty("email").GetString()!.Trim().ToLower();
         var firstName = root.TryGetProperty("given_name", out var fn) ? fn.GetString() ?? "Google" : "Google";
         var lastName = root.TryGetProperty("family_name", out var ln) ? ln.GetString() ?? "User" : "User";
-        var picture = root.TryGetProperty("picture", out var pic) ? pic.GetString() : null;
+        // El claim "picture" suele faltar en el idToken del SDK nativo; en ese
+        // caso usamos la foto que el frontend obtuvo de userInfo.user.photo.
+        var tokenPicture = root.TryGetProperty("picture", out var pic) ? pic.GetString() : null;
+        var picture = tokenPicture ?? photoUrl;
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
 
@@ -98,11 +102,20 @@ public class AuthService(AppDbContext db, IConfiguration config)
                 PasswordHash = "",   // Google users have no password
                 FirstName = firstName,
                 LastName = lastName,
+                AuthProvider = "google",
                 ProfilePhotoUrl = picture,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             };
             db.Users.Add(user);
+            await db.SaveChangesAsync(ct);
+        }
+        else if (!user.ProfilePhotoLocked && picture is not null && user.ProfilePhotoUrl != picture)
+        {
+            // Cuenta existente: refresca la foto con la de Google (las cuentas
+            // regulares no tienen foto, así que no se pisa nada propio).
+            user.ProfilePhotoUrl = picture;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
         }
 
@@ -124,7 +137,8 @@ public class AuthService(AppDbContext db, IConfiguration config)
             LastName: user.LastName,
             ProfilePhotoUrl: user.ProfilePhotoUrl,
             ProfilePhotoLocked: user.ProfilePhotoLocked,
-            MemberSince: memberSince
+            MemberSince: memberSince,
+            AuthProvider: user.AuthProvider
         );
     }
 

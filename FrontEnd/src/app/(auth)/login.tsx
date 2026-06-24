@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,7 +11,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuth } from '@/context/AuthContext';
+
+// El Web Client ID es el que el SDK nativo usa para emitir el idToken.
+const GOOGLE_WEB_CLIENT_ID = '183353685292-jgi9ibl5rjjbdj5aefmk85gf3gpgjs7o.apps.googleusercontent.com';
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+});
 
 function validate(email: string, password: string) {
   const errors: Record<string, string> = {};
@@ -23,12 +34,42 @@ function validate(email: string, password: string) {
 }
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setApiError('');
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      // Cierra la sesión cacheada del SDK para forzar el selector de cuentas.
+      await GoogleSignin.signOut();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken ?? userInfo.idToken;
+      // La foto viene en el userInfo del SDK, no siempre en el idToken.
+      const photoUrl = userInfo.data?.user?.photo ?? userInfo.user?.photo ?? null;
+      if (!idToken) {
+        setApiError('No se pudo obtener el token de Google.');
+        return;
+      }
+      await signInWithGoogle(idToken, photoUrl);
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+        // El usuario canceló; no mostramos error.
+      } else if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setApiError('Google Play Services no está disponible.');
+      } else {
+        setApiError(e.message ?? 'Error al iniciar sesión con Google.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     const fieldErrors = validate(email, password);
@@ -91,6 +132,23 @@ export default function LoginScreen() {
           )}
         </Pressable>
 
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>o</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.googleButton, pressed && styles.buttonPressed]}
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}>
+          {googleLoading ? (
+            <ActivityIndicator color="#444" />
+          ) : (
+            <Text style={styles.googleButtonText}>Continuar con Google</Text>
+          )}
+        </Pressable>
+
         <Link href="/(auth)/register" asChild>
           <Pressable style={styles.linkRow}>
             <Text style={styles.linkText}>¿No tienes cuenta? <Text style={styles.link}>Regístrate</Text></Text>
@@ -140,4 +198,16 @@ const styles = StyleSheet.create({
   linkRow: { alignItems: 'center', marginTop: 4 },
   linkText: { color: '#555', fontSize: 14 },
   link: { color: '#2563eb', fontWeight: '600' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#ddd' },
+  dividerText: { color: '#999', fontSize: 13 },
+  googleButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  googleButtonText: { color: '#333', fontSize: 16, fontWeight: '600' },
 });

@@ -14,6 +14,7 @@ export interface AuthUser {
   profilePhotoUrl?: string;
   profilePhotoLocked: boolean;
   memberSince: string;
+  authProvider: string;
 }
 
 export interface RegisterData {
@@ -31,6 +32,7 @@ interface AuthContextValue {
   signIn: (identifier: string, password: string) => Promise<void>;
   signUp: (data: RegisterData) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: (idToken: string, photoUrl?: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,6 +49,7 @@ function mapResponse(data: any): { token: string; user: AuthUser } {
       profilePhotoUrl: data.profilePhotoUrl ?? undefined,
       profilePhotoLocked: data.profilePhotoLocked,
       memberSince: data.memberSince,
+      authProvider: data.authProvider,
     },
   };
 }
@@ -109,6 +112,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('[Auth] Sesión guardada para:', u.username);
   }, []);
 
+  const signInWithGoogle = useCallback(async (idToken: string, photoUrl?: string | null) => {
+    console.log(`[Auth] Google Login → ${API_URL}/auth/google | photo: ${photoUrl ?? '(none)'}`);
+    const res = await fetch(`${API_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken, photoUrl }),
+    });
+    const data = await res.json();
+    console.log(`[Auth] Google Login response ${res.status}:`, data);
+    if (!res.ok) throw new Error(data.message ?? 'Error al iniciar sesión con Google.');
+    const { token: t, user: u } = mapResponse(data);
+    await saveSession(t, u);
+    console.log('[Auth] Sesión Google guardada para:', u.username);
+  }, []);
+
   const signOut = useCallback(async () => {
     console.log('[Auth] Cerrando sesión...');
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -119,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, token, isLoading, signIn, signUp, signOut, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

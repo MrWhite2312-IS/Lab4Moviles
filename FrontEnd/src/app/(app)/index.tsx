@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -26,9 +27,13 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        {user.profilePhotoUrl ? (
+          <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        )}
 
         <Text style={styles.name}>{fullName}</Text>
         <Text style={styles.username}>@{user.username}</Text>
@@ -42,6 +47,10 @@ export default function ProfileScreen() {
           <InfoRow
             label="Foto de perfil"
             value={user.profilePhotoLocked ? 'Bloqueada' : user.profilePhotoUrl ?? 'Sin foto'}
+          />
+          <InfoRow
+            label="Método de acceso"
+            value={user.authProvider === 'google' ? 'Google' : 'Correo y contraseña'}
           />
         </View>
 

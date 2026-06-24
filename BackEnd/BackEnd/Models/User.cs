@@ -30,6 +30,10 @@ public class User
     [MaxLength(100)]
     public required string LastName { get; set; }
 
+    [Column("auth_provider")]
+    [MaxLength(20)]
+    public string AuthProvider { get; set; } = "local";
+
     [Column("profile_photo_url")]
     public string? ProfilePhotoUrl { get; set; }
 

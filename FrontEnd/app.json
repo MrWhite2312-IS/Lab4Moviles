@@ -37,10 +37,18 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17be61c4-81e9-443b-b885-591696a8692c"
+      }
+    },
+    "owner": "sebastian.blancoquesada"
   }
 }

@@ -7,6 +7,7 @@ CREATE TABLE users (
     password_hash                VARCHAR(255)    NOT NULL,
     first_name                   VARCHAR(100)    NOT NULL,
     last_name                    VARCHAR(100)    NOT NULL,
+    auth_provider                VARCHAR(20)     NOT NULL DEFAULT 'local',
     profile_photo_url            TEXT,
     profile_photo_locked         BOOLEAN         NOT NULL DEFAULT FALSE,
     created_at                   TIMESTAMPTZ     NOT NULL DEFAULT NOW(),

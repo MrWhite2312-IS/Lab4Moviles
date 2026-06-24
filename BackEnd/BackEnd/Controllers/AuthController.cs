@@ -29,7 +29,7 @@ public class AuthController(AuthService auth) : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin(
         GoogleLoginRequestDto dto, CancellationToken ct)
     {
-        var (response, error) = await auth.GoogleLoginAsync(dto.IdToken, ct);
+        var (response, error) = await auth.GoogleLoginAsync(dto.IdToken, dto.PhotoUrl, ct);
         if (error is not null) return Unauthorized(new { message = error });
         return Ok(response);
     }
