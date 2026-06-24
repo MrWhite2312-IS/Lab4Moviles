@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace BackEnd.Service;
 
@@ -52,6 +53,60 @@ public class AuthService(AppDbContext db, IConfiguration config)
             return null;
 
         return BuildResponse(user);
+    }
+
+    public async Task<(AuthResponseDto? response, string? error)> GoogleLoginAsync(
+        string idToken, CancellationToken ct = default)
+    {
+        // Verify token with Google's tokeninfo endpoint (simple, no SDK needed)
+        using var http = new HttpClient();
+        var url = $"https://oauth2.googleapis.com/tokeninfo?id_token={idToken}";
+        var res = await http.GetAsync(url, ct);
+        if (!res.IsSuccessStatusCode)
+            return (null, "Token de Google inválido.");
+
+        var json = await res.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var expectedAudience = config["Google:ClientId"]!;
+        var aud = root.GetProperty("aud").GetString() ?? "";
+        if (aud != expectedAudience)
+            return (null, "Token de Google no corresponde a esta aplicación.");
+
+        var email = root.GetProperty("email").GetString()!.Trim().ToLower();
+        var firstName = root.TryGetProperty("given_name", out var fn) ? fn.GetString() ?? "Google" : "Google";
+        var lastName = root.TryGetProperty("family_name", out var ln) ? ln.GetString() ?? "User" : "User";
+        var picture = root.TryGetProperty("picture", out var pic) ? pic.GetString() : null;
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+
+        if (user is null)
+        {
+            // Auto-register Google user
+            var baseUsername = email.Split('@')[0];
+            var username = baseUsername;
+            var suffix = 1;
+            while (await db.Users.AnyAsync(u => u.Username.ToLower() == username.ToLower(), ct))
+                username = $"{baseUsername}{suffix++}";
+
+            user = new User
+            {
+                UserId = Guid.NewGuid(),
+                Username = username,
+                Email = email,
+                PasswordHash = "",   // Google users have no password
+                FirstName = firstName,
+                LastName = lastName,
+                ProfilePhotoUrl = picture,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+            db.Users.Add(user);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return (BuildResponse(user), null);
     }
 
     private AuthResponseDto BuildResponse(User user)

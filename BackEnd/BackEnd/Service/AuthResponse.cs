@@ -16,6 +16,7 @@
      );
 
     public record LoginRequestDto(string Identifier, string Password);
+    public record GoogleLoginRequestDto(string IdToken);
     public record RegisterPendingDto(Guid UserId, string Email, DateTime ExpiresAt);
     public record RegisterRequestDto(
         string Username,

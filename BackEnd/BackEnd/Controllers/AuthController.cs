@@ -24,4 +24,13 @@ public class AuthController(AuthService auth) : ControllerBase
         if (response is null) return Unauthorized(new { message = "Credenciales incorrectas." });
         return Ok(response);
     }
+
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResponseDto>> GoogleLogin(
+        GoogleLoginRequestDto dto, CancellationToken ct)
+    {
+        var (response, error) = await auth.GoogleLoginAsync(dto.IdToken, ct);
+        if (error is not null) return Unauthorized(new { message = error });
+        return Ok(response);
+    }
 }
