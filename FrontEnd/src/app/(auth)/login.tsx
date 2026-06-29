@@ -51,7 +51,7 @@ export default function LoginScreen() {
       await GoogleSignin.signOut();
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.data?.idToken ?? userInfo.idToken;
-      // La foto viene en el userInfo del SDK, no siempre en el idToken.
+     
       const photoUrl = userInfo.data?.user?.photo ?? userInfo.user?.photo ?? null;
       if (!idToken) {
         setApiError('No se pudo obtener el token de Google.');

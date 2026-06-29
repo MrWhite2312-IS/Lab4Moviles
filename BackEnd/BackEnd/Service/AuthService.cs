@@ -59,7 +59,7 @@ public class AuthService(AppDbContext db, IConfiguration config)
     public async Task<(AuthResponseDto? response, string? error)> GoogleLoginAsync(
         string idToken, string? photoUrl = null, CancellationToken ct = default)
     {
-        // Verify token with Google's tokeninfo endpoint (simple, no SDK needed)
+       
         using var http = new HttpClient();
         var url = $"https://oauth2.googleapis.com/tokeninfo?id_token={idToken}";
         var res = await http.GetAsync(url, ct);
@@ -78,8 +78,7 @@ public class AuthService(AppDbContext db, IConfiguration config)
         var email = root.GetProperty("email").GetString()!.Trim().ToLower();
         var firstName = root.TryGetProperty("given_name", out var fn) ? fn.GetString() ?? "Google" : "Google";
         var lastName = root.TryGetProperty("family_name", out var ln) ? ln.GetString() ?? "User" : "User";
-        // El claim "picture" suele faltar en el idToken del SDK nativo; en ese
-        // caso usamos la foto que el frontend obtuvo de userInfo.user.photo.
+
         var tokenPicture = root.TryGetProperty("picture", out var pic) ? pic.GetString() : null;
         var picture = tokenPicture ?? photoUrl;
 
